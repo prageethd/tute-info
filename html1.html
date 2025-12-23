@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Performance & Growth Insights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-button.active {
+            border-bottom-color: #3B82F6;
+            color: #1E40AF;
+            font-weight: 600;
+        }
+        .kpi-card {
+            background-color: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .cycle-node {
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+        .cycle-node.active {
+            transform: scale(1.05);
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+        .arrow {
+            position: relative;
+            width: 100%;
+            height: 2px;
+            background-color: #9CA3AF;
+        }
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: -4px;
+            border: solid #9CA3AF;
+            border-width: 0 2px 2px 0;
+            display: inline-block;
+            padding: 4px;
+            transform: rotate(-45deg);
+        }
+        .strategy-card {
+            cursor: pointer;
+        }
+        .strategy-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0, 1, 0, 1);
+        }
+        .strategy-card.open .strategy-content {
+            max-height: 1000px;
+            transition: max-height 1s ease-in-out;
+        }
+        .strategy-card.open .chevron {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A thematic, single-page dashboard structure was chosen to guide users from high-level insights to deep-dive exploration and actionable solutions. The flow is: 1) Header & Navigation for orientation. 2) Key Metrics for an immediate summary. 3) An Interactive Relationship Explorer as the core tool for self-directed data analysis. 4) A conceptual model (Performance Cycles) to explain the 'why' behind the data. 5) Actionable Strategies to provide practical value. This structure prioritizes user engagement and understanding by presenting information in layers of increasing detail, rather than a static, linear format. -->
+    <!-- Visualization & Content Choices: 
+        - Key Metrics: Goal: Inform. Method: KPI Cards. Interaction: Hover for emphasis. Justification: Provides a quick, scannable overview of the report's main findings.
+        - Core Relationships: Goal: Explore/Relate. Method: Interactive Scatter Plot. Interaction: User selects X/Y axes from dropdowns to dynamically change the visualization. Hovering on data points shows details. Justification: Empowers users to discover correlations themselves, which is more impactful than being shown static charts. Library: Chart.js (Canvas).
+        - Performance Cycles: Goal: Organize/Explain. Method: Interactive Diagram. Interaction: Clicking a stage in the cycle highlights it and displays contextual information. Justification: Visualizes a complex feedback loop concept in a simple, interactive way that's easier to grasp than text alone. Method: HTML/CSS/JS.
+        - Strategic Solutions: Goal: Inform/Organize. Method: Accordion/Toggleable Cards. Interaction: Clicking a card title expands to show details. Justification: Organizes a large amount of text into a manageable format, preventing user overload and allowing them to focus on areas of interest. Method: HTML/CSS/JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <div id="app-container" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <header class="text-center py-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">The Performance Nexus</h1>
+            <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">An interactive analysis of the interconnected relationship between employee attendance, work quality, leave, and skill development.</p>
+        </header>
+
+        <nav class="sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-gray-200 mb-12">
+            <div class="flex justify-center space-x-6 sm:space-x-10 py-4">
+                <button data-target="metrics" class="nav-button active">Key Metrics</button>
+                <button data-target="explorer" class="nav-button">Explorer</button>
+                <button data-target="cycles" class="nav-button">Performance Cycles</button>
+                <button data-target="strategies" class="nav-button">Strategies</button>
+            </div>
+        </nav>
+
+        <main>
+            <section id="metrics" class="mb-20">
+                <h2 class="text-3xl font-bold text-center mb-4">Core Insights at a Glance</h2>
+                <p class="text-center text-gray-600 mb-10 max-w-2xl mx-auto">This section provides a high-level summary of the key relationships discovered in our analysis. These metrics highlight the strong, predictable patterns between employee behaviors and outcomes.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="kpi-card">
+                        <div class="text-5xl mb-2">📈</div>
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Positive Correlation</h3>
+                        <p class="text-gray-600">Higher attendance rates strongly correlate with higher average work quality scores.</p>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="text-5xl mb-2">📉</div>
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Negative Correlation</h3>
+                        <p class="text-gray-600">Higher work quality scores are consistently linked to lower unplanned leave percentages.</p>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="text-5xl mb-2">💡</div>
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Skill Growth Driver</h3>
+                        <p class="text-gray-600">Employees with high attendance and quality acquire new skills at a significantly faster rate.</p>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="text-5xl mb-2">🔄</div>
+                        <h3 class="text-xl font-semibold mb-2 text-gray-800">Feedback Loops</h3>
+                        <p class="text-gray-600">These factors create powerful virtuous or vicious cycles that impact long-term engagement.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="explorer" class="mb-20">
+                <h2 class="text-3xl font-bold text-center mb-4">Interactive Relationship Explorer</h2>
+                <p class="text-center text-gray-600 mb-10 max-w-3xl mx-auto">Use the controls below to explore the data yourself. Select different metrics for the X and Y axes to visualize their correlation across a sample of 50 employees. Hover over any data point to see that employee's specific metrics.</p>
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6">
+                        <div class="w-full sm:w-auto">
+                            <label for="xAxisSelect" class="block text-sm font-medium text-gray-700">X-Axis:</label>
+                            <select id="xAxisSelect" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="attendance">Attendance Rate (%)</option>
+                                <option value="quality" selected>Avg. Work Quality (1-5)</option>
+                                <option value="leave">Leave Percentage (%)</option>
+                                <option value="skills">Skills Acquired (Count)</option>
+                            </select>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-400">vs.</div>
+                        <div class="w-full sm:w-auto">
+                            <label for="yAxisSelect" class="block text-sm font-medium text-gray-700">Y-Axis:</label>
+                            <select id="yAxisSelect" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="attendance">Attendance Rate (%)</option>
+                                <option value="quality">Avg. Work Quality (1-5)</option>
+                                <option value="leave">Leave Percentage (%)</option>
+                                <option value="skills" selected>Skills Acquired (Count)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="relationshipChart"></canvas>
+                    </div>
+                    <p id="chartInterpretation" class="text-center mt-6 text-gray-700 bg-gray-50 p-4 rounded-md"></p>
+                </div>
+            </section>
+
+            <section id="cycles" class="mb-20">
+                 <h2 class="text-3xl font-bold text-center mb-4">The Performance Cycles</h2>
+                 <p class="text-center text-gray-600 mb-10 max-w-3xl mx-auto">Employee performance isn't static; it exists in feedback loops. A positive trend in one area often boosts others, creating a "Virtuous Cycle." Conversely, a decline can trigger a negative "Vicious Cycle." Click on each stage to learn more about its impact.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    
+                    <div>
+                        <h3 class="text-2xl font-semibold text-center text-green-700 mb-6">The Virtuous Cycle</h3>
+                        <div id="virtuous-cycle" class="space-y-4">
+                            <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="virtuous" data-node="1">
+                                <h4 class="font-semibold text-lg">1. High Attendance & Quality</h4>
+                            </div>
+                            <div class="flex justify-center"><div class="arrow w-24 -rotate-90"></div></div>
+                             <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="virtuous" data-node="2">
+                                <h4 class="font-semibold text-lg">2. Positive Recognition & Engagement</h4>
+                            </div>
+                            <div class="flex justify-center"><div class="arrow w-24 -rotate-90"></div></div>
+                            <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="virtuous" data-node="3">
+                                <h4 class="font-semibold text-lg">3. Reduced Stress & More Capacity</h4>
+                            </div>
+                            <div class="flex justify-center"><div class="arrow w-24 -rotate-90"></div></div>
+                             <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="virtuous" data-node="4">
+                                <h4 class="font-semibold text-lg">4. Increased Skill Development</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-2xl font-semibold text-center text-red-700 mb-6">The Vicious Cycle</h3>
+                        <div id="vicious-cycle" class="space-y-4">
+                            <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="vicious" data-node="1">
+                                <h4 class="font-semibold text-lg">1. Low Attendance & Quality</h4>
+                            </div>
+                            <div class="flex justify-center"><div class="arrow w-24 -rotate-90"></div></div>
+                            <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="vicious" data-node="2">
+                                <h4 class="font-semibold text-lg">2. Lack of Engagement & Disconnection</h4>
+                            </div>
+                            <div class="flex justify-center"><div class="arrow w-24 -rotate-90"></div></div>
+                            <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="vicious" data-node="3">
+                                <h4 class="font-semibold text-lg">3. Increased Stress & Burnout</h4>
+                            </div>
+                            <div class="flex justify-center"><div class="arrow w-24 -rotate-90"></div></div>
+                            <div class="cycle-node bg-white p-4 rounded-lg shadow border border-gray-200" data-cycle="vicious" data-node="4">
+                                <h4 class="font-semibold text-lg">4. Stagnant Skill Growth</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="cycle-explanation" class="mt-10 bg-white p-6 rounded-lg shadow-lg border border-gray-200 min-h-[120px]">
+                    <p class="text-gray-700">Click on a cycle stage above to see its description here.</p>
+                </div>
+            </section>
+
+            <section id="strategies" class="mb-20">
+                <h2 class="text-3xl font-bold text-center mb-4">Actionable Strategies for Improvement</h2>
+                <p class="text-center text-gray-600 mb-10 max-w-3xl mx-auto">Understanding the data is the first step. The next is taking action. This section outlines key strategies organizations can implement to foster a culture of high performance, engagement, and continuous growth. Click each strategy to expand.</p>
+                <div class="space-y-4 max-w-4xl mx-auto">
+                    <div class="strategy-card bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div class="p-5 flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-gray-800">1. Enhance Feedback Mechanisms</h3>
+                            <span class="chevron text-2xl text-blue-500 transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="strategy-content px-5 pb-5">
+                            <p class="text-gray-600">Regular, constructive feedback is crucial. Move beyond annual reviews to continuous performance conversations. Implement 360-degree feedback systems and train managers to provide specific, actionable advice that focuses on growth rather than just evaluation. This builds psychological safety and clarifies expectations, directly improving work quality.</p>
+                        </div>
+                    </div>
+                    <div class="strategy-card bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div class="p-5 flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-gray-800">2. Invest in Proactive Skill Development</h3>
+                            <span class="chevron text-2xl text-blue-500 transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="strategy-content px-5 pb-5">
+                            <p class="text-gray-600">Don't wait for skill gaps to become problems. Offer access to online learning platforms, mentorship programs, and clear career pathing. When employees see a future for themselves at the company and are given the tools to get there, their engagement and motivation to perform high-quality work increase dramatically.</p>
+                        </div>
+                    </div>
+                    <div class="strategy-card bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div class="p-5 flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-gray-800">3. Promote Employee Wellness & Work-Life Balance</h3>
+                            <span class="chevron text-2xl text-blue-500 transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="strategy-content px-5 pb-5">
+                            <p class="text-gray-600">Burnout is a primary driver of absenteeism and low quality. Implement flexible work policies, encourage taking PTO, and provide resources for mental health support. A well-rested, healthy workforce is a productive one. This directly combats the root causes of the "vicious cycle."</p>
+                        </div>
+                    </div>
+                    <div class="strategy-card bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div class="p-5 flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-gray-800">4. Recognize and Reward Consistently</h3>
+                            <span class="chevron text-2xl text-blue-500 transition-transform duration-300">▼</span>
+                        </div>
+                        <div class="strategy-content px-5 pb-5">
+                            <p class="text-gray-600">Acknowledge both effort and results. Recognition doesn't always have to be monetary. Public praise, extra responsibility, or opportunities for special projects can be powerful motivators. A culture of recognition reinforces positive behaviors and strengthens the "virtuous cycle," making employees feel valued and seen.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center py-8 border-t border-gray-200">
+            <p class="text-gray-500">A Synthesized Interactive Report. For illustrative purposes only.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const employeeData = Array.from({ length: 50 }, (_, i) => {
+                const quality = 2 + Math.random() * 3;
+                const attendance = 85 + Math.random() * 15;
+                const baseLeave = 10 - (quality * 1.5);
+                const leave = Math.max(1, baseLeave - (attendance - 90) / 5 + (Math.random() - 0.5) * 2);
+                const skills = Math.round(quality + (attendance - 90) / 4 + (Math.random() - 0.5) * 2);
+                return {
+                    id: i + 1,
+                    quality: parseFloat(quality.toFixed(1)),
+                    attendance: parseFloat(attendance.toFixed(1)),
+                    leave: parseFloat(leave.toFixed(1)),
+                    skills: Math.max(0, skills)
+                };
+            });
+
+            const interpretations = {
+                'quality-skills': 'This view shows a strong positive correlation. As average work quality increases, the number of new skills acquired also tends to increase significantly. High-quality work often requires and fosters continuous learning.',
+                'attendance-leave': 'A clear negative correlation is visible. Employees with higher attendance rates tend to have a much lower percentage of unplanned leave. This suggests reliability is a key factor in presence.',
+                'attendance-quality': 'There is a positive correlation here. Employees who are more frequently present tend to produce higher quality work, likely due to consistency and engagement.',
+                'quality-leave': 'This demonstrates a negative correlation. Higher work quality is associated with lower leave percentages, suggesting that engaged, high-performing employees are less likely to take unplanned time off.',
+                'skills-leave': 'A negative correlation exists. Employees who acquire more skills tend to take less leave, possibly because they are more engaged and invested in their roles.',
+            };
+
+            const labels = {
+                quality: 'Avg. Work Quality (1-5)',
+                attendance: 'Attendance Rate (%)',
+                leave: 'Leave Percentage (%)',
+                skills: 'Skills Acquired (Count)'
+            };
+
+            const ctx = document.getElementById('relationshipChart').getContext('2d');
+            let chart;
+
+            const xAxisSelect = document.getElementById('xAxisSelect');
+            const yAxisSelect = document.getElementById('yAxisSelect');
+            const chartInterpretation = document.getElementById('chartInterpretation');
+
+            function renderChart() {
+                const xAxis = xAxisSelect.value;
+                const yAxis = yAxisSelect.value;
+
+                if (chart) {
+                    chart.destroy();
+                }
+
+                const data = {
+                    datasets: [{
+                        label: 'Employee Data',
+                        data: employeeData.map(e => ({ x: e[xAxis], y: e[yAxis] })),
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                    }]
+                };
+
+                const config = {
+                    type: 'scatter',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: labels[xAxis],
+                                    font: { size: 14 }
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: labels[yAxis],
+                                    font: { size: 14 }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const index = context.dataIndex;
+                                        const emp = employeeData[index];
+                                        return [
+                                            `Employee ID: ${emp.id}`,
+                                            `Quality: ${emp.quality}`,
+                                            `Attendance: ${emp.attendance}%`,
+                                            `Leave: ${emp.leave}%`,
+                                            `Skills: ${emp.skills}`
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+                
+                chart = new Chart(ctx, config);
+
+                const key = [xAxis, yAxis].sort().join('-');
+                chartInterpretation.textContent = interpretations[key] || `This chart displays the relationship between ${labels[xAxis]} and ${labels[yAxis]}.`;
+            }
+
+            xAxisSelect.addEventListener('change', renderChart);
+            yAxisSelect.addEventListener('change', renderChart);
+            
+            renderChart();
+
+            const cycleExplanations = {
+                virtuous: {
+                    1: "Consistent presence and high-quality output build trust and professional reputation. This foundation is key to unlocking further opportunities.",
+                    2: "Good work gets noticed. This leads to positive feedback, greater responsibility, and a stronger sense of purpose and belonging within the team and organization.",
+                    3: "Feeling competent and valued reduces work-related stress. This frees up mental and emotional energy, creating more capacity for new challenges and learning.",
+                    4: "With more capacity and encouragement, employees actively seek and absorb new skills, contributing more to the organization and advancing their own careers.",
+                },
+                vicious: {
+                    1: "Frequent absences and subpar work can erode trust and signal disengagement. It often leads to missed information and a disconnect from team goals.",
+                    2: "A lack of contribution can lead to social and professional isolation. Employees may feel like outsiders, reducing their motivation to engage or improve.",
+                    3: "Falling behind, facing criticism, or feeling disconnected is stressful. This can lead to burnout, which further impacts attendance and work quality, deepening the cycle.",
+                    4: "Employees in a state of burnout or disengagement have no capacity for growth. Skill development halts, leading to career stagnation and increasing dissatisfaction.",
+                }
+            };
+            const cycleContainer = document.getElementById('cycles');
+            const explanationBox = document.getElementById('cycle-explanation');
+
+            cycleContainer.addEventListener('click', function(e){
+                const node = e.target.closest('.cycle-node');
+                if(!node) return;
+                
+                document.querySelectorAll('.cycle-node.active').forEach(n => n.classList.remove('active'));
+                node.classList.add('active');
+
+                const cycle = node.dataset.cycle;
+                const nodeId = node.dataset.node;
+                
+                explanationBox.innerHTML = `<p class="text-gray-800">${cycleExplanations[cycle][nodeId]}</p>`;
+            });
+
+            const strategyCards = document.querySelectorAll('.strategy-card');
+            strategyCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    card.classList.toggle('open');
+                });
+            });
+            
+            const navButtons = document.querySelectorAll('.nav-button');
+            const sections = document.querySelectorAll('main section');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navButtons.forEach(button => {
+                            button.classList.toggle('active', button.dataset.target === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: '-40% 0px -60% 0px', threshold: 0 });
+
+            sections.forEach(section => observer.observe(section));
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) {
+                        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
